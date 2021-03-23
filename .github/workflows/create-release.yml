@@ -9,16 +9,23 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Set version
+        id: version
+        run: |
+          VERSION=$(echo ${{ github.ref }} | sed -e "s#refs/tags/v##g")
+          echo ::set-output name=version::$VERSION
+          echo "Version $VERSION"
       - uses: actions/checkout@v2
       - name: Set up JDK 1.8
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
       - name: Set version with Maven
-        run: mvn -B versions:set -DnewVersion=${{ github.ref }}
+        run: mvn -B versions:set -DnewVersion=${{ steps.version.outputs.version }}
       - name: Package with Maven
         run: mvn -B package --file pom.xml
       - name: Create Release
+        id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -33,6 +40,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./target/snapper-${{ github.ref }}.jar
-          asset_name: snapper-${{ github.ref }}.jar
+          asset_path: ./target/snapper-${{ steps.version.outputs.version }}.jar
+          asset_name: snapper-${{ steps.version.outputs.version }}.jar
           asset_content_type: application/jar
